@@ -14,7 +14,7 @@ export class AuthService {
   ) {}
 
   register(input: RegistroPacienteDto): Promise<RespuestaUsuarioDto> {
-    return this.usuariosService.create(input);
+    return this.usuariosService.registerPaciente(input);
   }
 
   async login(input: LoginDto): Promise<{
@@ -29,7 +29,9 @@ export class AuthService {
       !usuario.activo ||
       !(await bcrypt.compare(input.password, usuario.password))
     ) {
-      throw new UnauthorizedException('Correo electrónico o contraseña incorrectos.');
+      throw new UnauthorizedException(
+        'Correo electrónico o contraseña incorrectos.',
+      );
     }
 
     const accessToken = await this.jwtService.signAsync({ sub: usuario.id });

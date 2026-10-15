@@ -1,4 +1,25 @@
-# Contrato de integración de seguridad
+# Contrato de integración MediControl
+
+## Entidades y relaciones
+
+- `Usuario` es la identidad compartida: nombre, email, contraseña, rol y estado
+  activo se almacenan únicamente en `usuarios`.
+- `Medico` contiene `especialidad` y `disponible`; posee una relación
+  `OneToOne` con `Usuario`, con FK única `usuario_id`. El usuario enlazado debe
+  tener rol `MEDICO`.
+- `Paciente` contiene el teléfono opcional y posee una relación `OneToOne` con
+  `Usuario`, con FK única `usuario_id`. El usuario enlazado debe tener rol
+  `PACIENTE`.
+- No se copian nombre, email ni contraseña a los perfiles. Los endpoints
+  serializan datos de usuario sin contraseña.
+- La disponibilidad del médico es general. La disponibilidad para una fecha
+  u hora debe resolverse en el módulo de citas; `Cita` sigue pendiente.
+
+Las restricciones de rol se verifican al asociar el perfil. `PATCH
+/usuarios/:id/rol` rechaza cambios que dejen un perfil médico con un rol que no
+sea `MEDICO` o un perfil de paciente con un rol que no sea `PACIENTE`. Los
+perfiles únicos y los cambios de rol se validan bajo bloqueo transaccional del
+usuario, además de la restricción única de la FK.
 
 ## Exports y rutas
 
@@ -12,7 +33,27 @@ Los componentes reutilizables están en:
 - `src/auth/decorators/current-user.decorator.ts`: `CurrentUser`.
 - `src/auth/interfaces/usuario-autenticado.interface.ts`: `UsuarioAutenticado`.
 
-`UsuariosModule` exporta `TypeOrmModule` y `UsuariosService`. No importa `AuthModule`; los controladores de usuarios se registran en `AuthModule` para evitar una dependencia circular.
+`UsuariosModule` exporta `TypeOrmModule` y `UsuariosService`. No importa
+`AuthModule`; los controladores de usuarios se registran en `AuthModule` para
+evitar una dependencia circular. También registra los metadatos de `Medico` y
+`Paciente` para poder validar roles y crear el perfil de registro.
+
+`MedicosModule` y `PacientesModule` importan `AuthModule` para reutilizar los
+guards existentes y exportan `TypeOrmModule` para que otros módulos puedan
+inyectar sus repositorios:
+
+```ts
+@Module({
+  imports: [MedicosModule, PacientesModule],
+})
+export class ModuloConsumidor {}
+```
+
+El módulo consumidor puede inyectar
+`@InjectRepository(Medico) Repository<Medico>` o
+`@InjectRepository(Paciente) Repository<Paciente>`. `Medico` y `Paciente` se
+importan desde `src/medicos/entities/medico.entity.ts` y
+`src/pacientes/entities/paciente.entity.ts`, respectivamente.
 
 ## Usuario, rol y request.user
 
@@ -62,9 +103,66 @@ export class ModuloConsumidor {}
 
 En el proveedor consumidor se puede inyectar `@InjectRepository(Usuario) repository: Repository<Usuario>`.
 
-Los únicos endpoints públicos son `POST /auth/register` y `POST /auth/login`. El registro solo recibe `nombre`, `email` y `password`; asigna siempre `Rol.PACIENTE`.
+Los únicos endpoints públicos son `POST /auth/register` y `POST /auth/login`.
+El registro solo recibe `nombre`, `email` y `password`; asigna siempre
+`Rol.PACIENTE` y crea `Usuario` y `Paciente` en una única transacción. No se
+acepta un rol en el cuerpo. Los usuarios PACIENTE creados antes de tener este
+perfil pueden ser vinculados por ADMIN mediante `POST /pacientes`.
+
+## API de médicos y pacientes
+
+Todas las respuestas de perfil incluyen `usuario` con `id`, `nombre`, `email`,
+`rol` y `activo`; nunca incluyen `password`.
+
+| Método | Ruta            | Acceso   | Comportamiento                                    |
+| ------ | --------------- | -------- | ------------------------------------------------- |
+| POST   | `/medicos`      | ADMIN    | Crea un perfil para un usuario existente MEDICO   |
+| GET    | `/medicos`      | JWT      | Lista solo médicos disponibles con usuario activo |
+| PATCH  | `/medicos/:id`  | ADMIN    | Cambia `especialidad` y/o `disponible`            |
+| POST   | `/pacientes`    | ADMIN    | Crea un perfil para un usuario existente PACIENTE |
+| GET    | `/pacientes`    | ADMIN    | Lista pacientes                                   |
+| GET    | `/pacientes/me` | PACIENTE | Consulta solo el perfil de la cuenta autenticada  |
+| PATCH  | `/pacientes/me` | PACIENTE | Actualiza únicamente `telefono` propio            |
+
+`GET /medicos` no comprueba agenda ni disponibilidad para fecha/hora.
+No existe acceso general de médicos a pacientes; la consulta de datos mínimos
+por médicos queda reservada al contexto del módulo de citas.
+
+Ejemplos de cuerpos:
+
+```json
+{
+  "usuarioId": 12,
+  "especialidad": "Cardiología",
+  "disponible": true
+}
+```
+
+```json
+{
+  "usuarioId": 34,
+  "telefono": "+1 555 0100"
+}
+```
+
+```json
+{
+  "telefono": "+1 555 0101"
+}
+```
+
+`PATCH /medicos/:id` acepta uno o ambos campos:
+
+```json
+{
+  "especialidad": "Neurología",
+  "disponible": false
+}
+```
+
+Los cuerpos de registro y creación de usuario mantienen sus contratos
+existentes; no deben incluir `rol` en `POST /auth/register`.
 
 ## Pendientes del equipo
 
-- Esteban: crear los perfiles médico y paciente y vincular el alta `PACIENTE` con su perfil. Esta entrega no crea esas entidades ni relaciones.
-- Luis: implementar el módulo de citas. Esta entrega no agrega rutas ni relaciones de citas.
+- Luis: implementar citas. Esta entrega no agrega rutas ni relaciones de citas.

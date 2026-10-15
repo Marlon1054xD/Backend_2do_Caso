@@ -16,7 +16,7 @@ describe('AuthService', () => {
     activo: true,
   };
   const usuariosService = {
-    create: jest.fn(),
+    registerPaciente: jest.fn(),
     findByEmailWithPassword: jest.fn(),
   } as unknown as jest.Mocked<UsuariosService>;
   const jwtService = {
@@ -26,7 +26,7 @@ describe('AuthService', () => {
 
   beforeEach(() => jest.clearAllMocks());
 
-  it('registra exclusivamente con el rol PACIENTE por defecto', async () => {
+  it('delega el registro que siempre crea un usuario PACIENTE con perfil', async () => {
     const result = {
       id: 4,
       nombre: usuario.nombre,
@@ -34,7 +34,7 @@ describe('AuthService', () => {
       rol: Rol.PACIENTE,
       activo: true,
     };
-    jest.mocked(usuariosService.create).mockResolvedValue(result);
+    jest.mocked(usuariosService.registerPaciente).mockResolvedValue(result);
 
     await authService.register({
       nombre: usuario.nombre,
@@ -42,7 +42,7 @@ describe('AuthService', () => {
       password: 'Password123',
     });
 
-    expect(usuariosService.create).toHaveBeenCalledWith({
+    expect(usuariosService.registerPaciente).toHaveBeenCalledWith({
       nombre: usuario.nombre,
       email: usuario.email,
       password: 'Password123',
@@ -51,9 +51,9 @@ describe('AuthService', () => {
 
   it('verifica la contraseña y responde con token sin exponer hash', async () => {
     const passwordHash = await bcrypt.hash('Password123', 4);
-    jest.mocked(usuariosService.findByEmailWithPassword).mockResolvedValue(
-      { ...usuario, password: passwordHash },
-    );
+    jest
+      .mocked(usuariosService.findByEmailWithPassword)
+      .mockResolvedValue({ ...usuario, password: passwordHash });
     jest.mocked(jwtService.signAsync).mockResolvedValue('jwt-token');
 
     const result = await authService.login({
@@ -66,7 +66,9 @@ describe('AuthService', () => {
   });
 
   it('rechaza credenciales inválidas', async () => {
-    jest.mocked(usuariosService.findByEmailWithPassword).mockResolvedValue(null);
+    jest
+      .mocked(usuariosService.findByEmailWithPassword)
+      .mockResolvedValue(null);
 
     await expect(
       authService.login({ email: usuario.email, password: 'incorrecta' }),
