@@ -30,18 +30,25 @@ Swagger está disponible en `http://localhost:3000/docs`. Las rutas de usuarios 
 
 ### Rutas de seguridad
 
-| Método | Ruta | Acceso |
-| --- | --- | --- |
-| POST | `/auth/register` | Público, crea únicamente PACIENTE |
-| POST | `/auth/login` | Público |
-| POST | `/usuarios` | ADMIN |
-| GET | `/usuarios` | ADMIN |
-| GET | `/usuarios/me` | Usuario autenticado |
-| PATCH | `/usuarios/:id/rol` | ADMIN |
+| Método | Ruta                | Acceso                            |
+| ------ | ------------------- | --------------------------------- |
+| POST   | `/auth/register`    | Público, crea únicamente PACIENTE |
+| POST   | `/auth/login`       | Público                           |
+| POST   | `/usuarios`         | ADMIN                             |
+| GET    | `/usuarios`         | ADMIN                             |
+| GET    | `/usuarios/me`      | Usuario autenticado               |
+| PATCH  | `/usuarios/:id/rol` | ADMIN                             |
+| POST   | `/medicos`          | ADMIN                             |
+| GET    | `/medicos`          | Usuario autenticado               |
+| PATCH  | `/medicos/:id`      | ADMIN                             |
+| POST   | `/pacientes`        | ADMIN                             |
+| GET    | `/pacientes`        | ADMIN                             |
+| GET    | `/pacientes/me`     | PACIENTE                          |
+| PATCH  | `/pacientes/me`     | PACIENTE                          |
 
 Los DTO validan los cuerpos con whitelist estricta. Las respuestas de usuario nunca incluyen `password`; los correos duplicados responden `409 Conflict`.
 
-Para integración con módulos del equipo, consulta [docs/contrato-integracion.md](docs/contrato-integracion.md).
+El registro público crea `Usuario` y su perfil `Paciente` en una transacción y siempre asigna el rol `PACIENTE`. Para el contrato de perfiles y sus relaciones, consulta [docs/contrato-integracion.md](docs/contrato-integracion.md) y [docs/modelo-er.md](docs/modelo-er.md).
 
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>

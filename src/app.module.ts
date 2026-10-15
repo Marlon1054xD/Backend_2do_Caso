@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
+import { MedicosModule } from './medicos/medicos.module';
+import { PacientesModule } from './pacientes/pacientes.module';
 import { UsuariosModule } from './usuarios/usuarios.module';
 
 @Module({
@@ -27,6 +29,8 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     }),
     UsuariosModule,
     AuthModule,
+    MedicosModule,
+    PacientesModule,
   ],
   controllers: [AppController],
   providers: [AppService],
