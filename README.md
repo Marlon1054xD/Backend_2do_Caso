@@ -50,6 +50,43 @@ Los DTO validan los cuerpos con whitelist estricta. Las respuestas de usuario nu
 
 El registro público crea `Usuario` y su perfil `Paciente` en una transacción y siempre asigna el rol `PACIENTE`. Para el contrato de perfiles y sus relaciones, consulta [docs/contrato-integracion.md](docs/contrato-integracion.md) y [docs/modelo-er.md](docs/modelo-er.md).
 
+### Flujo de citas
+
+Todas las rutas de citas requieren JWT. Registra/inicia sesión como paciente
+con `POST /auth/register` y `POST /auth/login`, y conserva el token devuelto
+para las solicitudes autenticadas. El `ADMIN` crea el perfil del médico con
+`POST /medicos` (el usuario asociado debe tener rol `MEDICO`); el médico debe
+estar activo y marcado como disponible.
+
+El paciente reserva con `POST /citas`:
+
+```json
+{
+  "medicoId": 8,
+  "fecha": "2027-03-10",
+  "hora": "14:30"
+}
+```
+
+El perfil del paciente se deriva siempre del usuario autenticado: no se envían
+`pacienteId` ni `estado`. `fecha` y `hora` expresan la hora local de negocio
+`America/Bogota`; la fecha debe existir realmente y el turno ser futuro.
+Horarios concurrentes del mismo médico se serializan dentro de una transacción;
+un turno cancelado puede reservarse de nuevo, uno completado sigue ocupado.
+
+`GET /citas` presenta todas las citas a `ADMIN` y filtra por perfil propio a
+`MEDICO` y `PACIENTE`. La respuesta incluye solo el nombre e identificador del
+paciente, y el nombre, identificador y especialidad del médico; nunca incluye
+contraseñas. El médico completa sus citas programadas con
+`PATCH /citas/:id/estado` y cuerpo `{"estado":"completada"}`. El paciente cancela
+sus citas y `ADMIN` puede cancelar cualquiera con `PATCH /citas/:id/cancelar`.
+No se pueden completar citas canceladas ni cancelar citas completadas.
+
+La colección importable está en
+[`postman/MediControl.postman_collection.json`](postman/MediControl.postman_collection.json).
+Configura `baseUrl` y pega los tokens obtenidos para `adminToken`,
+`medicoToken` y `pacienteToken`; el archivo no contiene credenciales reales.
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
