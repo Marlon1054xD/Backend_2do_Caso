@@ -10,10 +10,14 @@
 - `Paciente` contiene el teléfono opcional y posee una relación `OneToOne` con
   `Usuario`, con FK única `usuario_id`. El usuario enlazado debe tener rol
   `PACIENTE`.
+- `Cita` contiene fecha, hora y estado (`programada`, `cancelada` o
+  `completada`), con relaciones `ManyToOne` a `Paciente` y `Medico`.
 - No se copian nombre, email ni contraseña a los perfiles. Los endpoints
   serializan datos de usuario sin contraseña.
 - La disponibilidad del médico es general. La disponibilidad para una fecha
-  u hora debe resolverse en el módulo de citas; `Cita` sigue pendiente.
+  u hora se resuelve al reservar una cita.
+- La fecha y la hora de una cita son valores locales de negocio en
+  `America/Bogota`; se rechazan fechas/hora inválidas y citas pasadas.
 
 Las restricciones de rol se verifican al asociar el perfil. `PATCH
 /usuarios/:id/rol` rechaza cambios que dejen un perfil médico con un rol que no
@@ -123,6 +127,18 @@ Todas las respuestas de perfil incluyen `usuario` con `id`, `nombre`, `email`,
 | GET    | `/pacientes`    | ADMIN    | Lista pacientes                                   |
 | GET    | `/pacientes/me` | PACIENTE | Consulta solo el perfil de la cuenta autenticada  |
 | PATCH  | `/pacientes/me` | PACIENTE | Actualiza únicamente `telefono` propio            |
+| POST   | `/citas` | PACIENTE | Reserva para el paciente autenticado |
+| GET    | `/citas` | JWT | ADMIN todas; MEDICO/PACIENTE solo sus citas |
+| PATCH  | `/citas/:id/estado` | MEDICO | Completa una cita propia programada |
+| PATCH  | `/citas/:id/cancelar` | PACIENTE/ADMIN | Cancela cita programada propia/cualquiera |
+
+`POST /citas` recibe únicamente `medicoId`, `fecha` (`YYYY-MM-DD`) y `hora`
+(`HH:mm`). El paciente se determina mediante `request.user.id`; el cliente no
+puede asignar paciente ni estado. Se crean siempre en estado `programada`.
+Los horarios ocupados devuelven `409`. La reserva y la cancelación bloquean la
+fila del médico con bloqueo pesimista dentro de una transacción para evitar
+doble reserva concurrente. Los turnos cancelados se pueden reutilizar y los
+completados permanecen ocupados.
 
 `GET /medicos` no comprueba agenda ni disponibilidad para fecha/hora.
 No existe acceso general de médicos a pacientes; la consulta de datos mínimos
@@ -163,6 +179,5 @@ Ejemplos de cuerpos:
 Los cuerpos de registro y creación de usuario mantienen sus contratos
 existentes; no deben incluir `rol` en `POST /auth/register`.
 
-## Pendientes del equipo
-
-- Luis: implementar citas. Esta entrega no agrega rutas ni relaciones de citas.
+La colección importable de Postman se encuentra en
+[`postman/MediControl.postman_collection.json`](../postman/MediControl.postman_collection.json).

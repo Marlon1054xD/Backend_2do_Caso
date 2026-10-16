@@ -1,0 +1,107 @@
+{
+  "info": {
+    "_postman_id": "395e4cf7-90a5-4ed7-94b1-dc4a4722f341",
+    "name": "MediControl - Citas",
+    "description": "Flujo de citas. Configure baseUrl y tokens obtenidos mediante POST /auth/login. No contiene credenciales ni tokens reales.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3000" },
+    { "key": "adminToken", "value": "" },
+    { "key": "medicoToken", "value": "" },
+    { "key": "pacienteToken", "value": "" },
+    { "key": "medicoId", "value": "1" },
+    { "key": "citaId", "value": "1" },
+    { "key": "fecha", "value": "2027-03-10" },
+    { "key": "hora", "value": "14:30" }
+  ],
+  "item": [
+    {
+      "name": "Reservar cita (PACIENTE)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{pacienteToken}}", "type": "string" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"medicoId\": {{medicoId}},\n  \"fecha\": \"{{fecha}}\",\n  \"hora\": \"{{hora}}\"\n}"
+        },
+        "url": "{{baseUrl}}/citas"
+      }
+    },
+    {
+      "name": "Listar citas (ADMIN)",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+        },
+        "url": "{{baseUrl}}/citas"
+      }
+    },
+    {
+      "name": "Listar mis citas (MEDICO)",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{medicoToken}}", "type": "string" }]
+        },
+        "url": "{{baseUrl}}/citas"
+      }
+    },
+    {
+      "name": "Listar mis citas (PACIENTE)",
+      "request": {
+        "method": "GET",
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{pacienteToken}}", "type": "string" }]
+        },
+        "url": "{{baseUrl}}/citas"
+      }
+    },
+    {
+      "name": "Completar cita propia (MEDICO)",
+      "request": {
+        "method": "PATCH",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{medicoToken}}", "type": "string" }]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"estado\": \"completada\"\n}"
+        },
+        "url": "{{baseUrl}}/citas/{{citaId}}/estado"
+      }
+    },
+    {
+      "name": "Cancelar mi cita (PACIENTE)",
+      "request": {
+        "method": "PATCH",
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{pacienteToken}}", "type": "string" }]
+        },
+        "url": "{{baseUrl}}/citas/{{citaId}}/cancelar"
+      }
+    },
+    {
+      "name": "Cancelar cita (ADMIN)",
+      "request": {
+        "method": "PATCH",
+        "auth": {
+          "type": "bearer",
+          "bearer": [{ "key": "token", "value": "{{adminToken}}", "type": "string" }]
+        },
+        "url": "{{baseUrl}}/citas/{{citaId}}/cancelar"
+      }
+    }
+  ]
+}

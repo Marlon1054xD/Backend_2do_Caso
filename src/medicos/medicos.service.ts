@@ -76,16 +76,20 @@ export class MedicosService {
     id: number,
     input: ActualizarMedicoDto,
   ): Promise<RespuestaMedicoDto> {
-    const medico = await this.medicosRepository.findOne({
-      where: { id },
-      relations: { usuario: true },
-    });
-    if (!medico) {
-      throw new NotFoundException('El perfil médico solicitado no existe.');
-    }
+    return this.dataSource.transaction(async (manager) => {
+      const medicosRepository = manager.getRepository(Medico);
+      const medico = await medicosRepository.findOne({
+        where: { id },
+        relations: { usuario: true },
+        lock: { mode: 'pessimistic_write' },
+      });
+      if (!medico) {
+        throw new NotFoundException('El perfil médico solicitado no existe.');
+      }
 
-    Object.assign(medico, input);
-    return this.toResponse(await this.medicosRepository.save(medico));
+      Object.assign(medico, input);
+      return this.toResponse(await medicosRepository.save(medico));
+    });
   }
 
   private toResponse(medico: Medico): RespuestaMedicoDto {
