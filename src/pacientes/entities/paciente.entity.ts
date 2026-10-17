@@ -12,7 +12,7 @@ export class Paciente {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ length: 30, nullable: true })
+  @Column({ type: 'varchar', length: 30, nullable: true })
   telefono: string | null;
 
   @OneToOne(() => Usuario)
